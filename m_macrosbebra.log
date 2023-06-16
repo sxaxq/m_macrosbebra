@@ -1,0 +1,4 @@
+﻿  main.cpp
+C:\Users\microzavrik\source\repos\m_macrosbebra\config.h(190,23): warning C4018: <: несоответствие типов со знаком и без знака
+C:\Users\microzavrik\source\repos\m_macrosbebra\config.h(253,25): warning C4018: <: несоответствие типов со знаком и без знака
+  m_macrosbebra.vcxproj -> C:\Users\microzavrik\source\repos\m_macrosbebra\Debug\m_macrosbebra.exe
