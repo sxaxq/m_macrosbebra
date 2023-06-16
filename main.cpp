@@ -154,16 +154,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 LRESULT CALLBACK mainWindowProc(HWND mhwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-
 	switch (msg)
 	{
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
-	case WM_CREATE:
-	{
-
-	}
 	case WM_ERASEBKGND:
 	{
 		HDC hdc = HDC(wParam);

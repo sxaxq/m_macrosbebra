@@ -206,7 +206,6 @@ void init()
 
 LRESULT CALLBACK LinesWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-
 	switch (msg)
 	{
 	case WM_DESTROY:

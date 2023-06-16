@@ -58,7 +58,6 @@ void detected_game()
 
 void add_column(size_t id, char key, bool haveText, int pause)
 {
-	
 	LVITEM lvItem;
 	lvItem.mask = LVIF_TEXT;
 	lvItem.iItem = row;
