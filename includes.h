@@ -3,12 +3,15 @@
 #include <string>
 #include <prsht.h>
 #include <commctrl.h>
+#include <utility>
 #include <map>
+#include "bind.h"
 
 LPWSTR to_lpwstr(std::string str);
 LRESULT CALLBACK ButtonWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK LinesWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-void init();
+void added_handler();
+std::string test(WCHAR buffer[256]);
 
 static bool binder_worked = true;
 static int last_key = 0;
@@ -17,30 +20,27 @@ static HWND mainHwnd;
 static HWND hListView;
 static size_t row = 0;
 static size_t col = 0;
+vector<GameInfo> games;
 
-enum class NameGame
+std::pair<game_t, LPWSTR> is_game(WCHAR* str)
 {
-	SAMP,
-	CSGO,
-	DOTA2,
-	NONE
-};
+	for (size_t i = 0; i < games.size(); i++)
+	{
+		if (wcscmp(games[i].game_str, str) == 0)
+		{
+			wcout << "Try: " << games[i].game_str << " : " << str << endl;
+			return make_pair(games[i].ngame, games[i].game_str);
+		}
+	}
 
-NameGame currentGame;
-
-struct GameInfo
-{
-	int id;
-	NameGame ngame;
-	LPCWSTR game_str;
-};
+	return make_pair(game_t::NONE, to_lpwstr("No-Game"));
+}
 
 void detected_game()
 {
-	vector<GameInfo> games;
-	games.push_back(GameInfo{ 0, NameGame::SAMP, L"GTA:SA:MP" });
-	games.push_back(GameInfo{ 1, NameGame::CSGO, L"Counter-Strike: Global Offensive - Direct3D 9" });
-	games.push_back(GameInfo{ 2, NameGame::DOTA2, L"dota2.exe" });
+	games.push_back(GameInfo{ 0, game_t::SAMP, to_lpwstr("GTA:SA:MP")});
+	games.push_back(GameInfo{ 1, game_t::CSGO, to_lpwstr("Counter-Strike: Global Offensive - Direct3D 9")});
+	games.push_back(GameInfo{ 2, game_t::DOTA2, to_lpwstr("Dota 2") });
 	
 	for (size_t i = 0; i < games.size(); i++)
 	{
@@ -53,10 +53,10 @@ void detected_game()
 		}
 	}
 	cout << "not found game active process" << endl;
-	currentGame = NameGame::NONE;
+	currentGame = game_t::NONE;
 }
 
-void add_column(size_t id, char key, bool haveText, int pause)
+void add_column(size_t id, char key, bool haveText, int pause, LPWSTR game, size_t line_count)
 {
 	LVITEM lvItem;
 	lvItem.mask = LVIF_TEXT;
@@ -71,6 +71,8 @@ void add_column(size_t id, char key, bool haveText, int pause)
 	string hText = haveText == true ? "yes" : "no";
 	ListView_SetItemText(hListView, row, 2, to_lpwstr(hText));
 	ListView_SetItemText(hListView, row, 3, to_lpwstr(std::to_string(pause)));
+	ListView_SetItemText(hListView, row, 4, game);
+	ListView_SetItemText(hListView, row, 5, to_lpwstr(std::to_string(line_count)));
 	UpdateWindow(mainHwnd);
 
 	++row;
@@ -95,3 +97,4 @@ int to_virtual_key(std::string str)
 	cout << key << " <- key" << endl;
 	return VkKeyScan(key);
 }
+

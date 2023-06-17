@@ -2,7 +2,10 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <utility>
+#include "ngame_t.h"
 using namespace std;
+
 
 class bind_t
 {
@@ -10,10 +13,21 @@ private:
 	size_t id;
 	int key_code;
 	std::vector<std::string> text;
+	pair<game_t, LPWSTR> bind_game;
 	int pause;
 public:
 	class bind_t() = default;
 	class bind_t(size_t id_) : id(id_), pause(1000) {}
+
+	void set_bind_game(pair<game_t, LPWSTR> game)
+	{
+		bind_game = game;
+	}
+
+	LPWSTR get_lpwstr()
+	{
+		return bind_game.second;
+	}
 
 	int get_pause()
 	{
@@ -96,4 +110,16 @@ std::vector<std::string> getBind(std::vector<bind_t>& binds, int key_code)
 	}
 	std::vector<std::string> v;
 	return v;
+}
+
+LPWSTR get_game_text(std::vector<bind_t>& binds, int key_code)
+{
+	for (size_t i = 0; i < binds.size(); i++)
+	{
+		if (binds[i].read_key() == key_code)
+		{
+			return binds[i].get_lpwstr();
+		}
+	}
+	return (LPWSTR)"NOT";
 }

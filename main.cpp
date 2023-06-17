@@ -4,66 +4,13 @@
 
 using namespace std;
 
-HHOOK hook;
-
 void pressed_handler(int keyCode);
 LRESULT CALLBACK mainWindowProc(HWND mhwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
 
-LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
-{
-	if(nCode == HC_ACTION && wParam == WM_KEYDOWN)
-	{
-		KBDLLHOOKSTRUCT* p = (KBDLLHOOKSTRUCT*)lParam;
-		pressed_handler(p->vkCode);
-	}
-	return CallNextHookEx(hook, nCode, wParam, lParam);
-}
-
-void pressed_handler(int keyCode)
-{
-	if (binder_worked == false) return;
-
-	if (isContains(binders, keyCode))
-	{
-		int pause = getPause(binders, keyCode);
-		cout << keyCode << endl;
-		for (string s : getBind(binders, keyCode))
-		{
-			switch (currentGame)
-			{
-			case NameGame::SAMP:
-				keybd_event(0x54, 0, 0, 0);
-				keybd_event(0x54, 0, KEYEVENTF_KEYUP, 0);
-				break;
-			case NameGame::CSGO:
-				keybd_event(0x55, 0, 0, 0);
-				keybd_event(0x55, 0, KEYEVENTF_KEYUP, 0);
-				break;
-			case NameGame::NONE:
-				keybd_event(VK_BACK, 0, 0, 0);
-				keybd_event(VK_BACK, 0, KEYEVENTF_KEYUP, 0);
-				break;
-			}
-
-			for (char c : s)
-			{
-				int vk = VkKeyScan(c);
-				if (vk != -1)
-				{
-					int scan = MapVirtualKey(vk, MAPVK_VK_TO_VSC);
-					keybd_event(vk, scan, 0, 0);
-					keybd_event(vk, scan, KEYEVENTF_KEYUP, 0);
-				}
-			}
-			keybd_event(VK_RETURN, 0, 0, 0);
-			keybd_event(VK_RETURN, 0, KEYEVENTF_KEYUP, 0);
-			Sleep(pause);
-		}
-	}
-}
-
-const LPCWSTR onStatus = L"[ON]";
-const LPCWSTR offStatus = L"[OFF]";
+const LPCWSTR onStatus = L" [ON]";
+const LPCWSTR offStatus = L" [OFF]";
+HHOOK hook;
 HWND statusText;
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
@@ -81,10 +28,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	RegisterClassEx(&wc);
 
-	mainHwnd = CreateWindowEx(0, L"mainWindow", L"ÁÈÍÄÅÐ ÎÒ ÊÂÀÑÀ", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,
-		CW_USEDEFAULT, 500, 500, NULL, NULL, GetModuleHandle(NULL), NULL);
+	mainHwnd = CreateWindowEx(WS_EX_LAYERED, L"mainWindow", L"ÁÈÍÄÅÐ ÎÒ ÊÂÀÑÀ", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,
+		CW_USEDEFAULT, 500, 460, NULL, NULL, GetModuleHandle(NULL), NULL);
+
+	SetLayeredWindowAttributes(mainHwnd, RGB(0, 0, 0), 200, LWA_ALPHA);
 
 	HFONT hFont = CreateFont(16, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+		OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
+		L"Consolas");
+
+	HFONT bigText = CreateFont(20, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
 		OUT_OUTLINE_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE,
 		L"Consolas");
 
@@ -111,7 +64,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	statusText = CreateWindowExW(
 		0, L"STATIC", onStatus, WS_CHILD | WS_VISIBLE | SS_LEFT,
-		427, 175, 100, 100, mainHwnd, nullptr, GetModuleHandle(NULL), nullptr
+		415, 175, 50, 50, mainHwnd, nullptr, GetModuleHandle(NULL), nullptr
 	);
 
 	SendMessage(statusText, WM_SETFONT, (WPARAM)hFont, TRUE);
@@ -119,8 +72,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	hListView = CreateWindowEx(WS_EX_CLIENTEDGE, WC_LISTVIEW, L"", WS_VISIBLE | WS_CHILD |
 		LVS_REPORT, 10, 10, 400, 400, mainHwnd, NULL, GetModuleHandle(NULL), NULL);
 	SendMessage(hListView, WM_SETFONT, NULL, MAKELPARAM(0, 0));
-
-
 
 	SetWindowLongPtr(mainHwnd, GWLP_USERDATA, (LONG_PTR)mainWindowProc);
 	SetWindowLongPtr(mainHwnd, GWLP_WNDPROC, (LONG_PTR)mainWindowProc);
@@ -142,6 +93,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	lvColumn.cx = 60;
 	lvColumn.pszText = to_lpwstr("PAUSE");
 	ListView_InsertColumn(hListView, 3, &lvColumn);
+	ShowWindow(mainHwnd, SW_SHOW);
+
+	lvColumn.cx = 80;
+	lvColumn.pszText = to_lpwstr("GAME");
+	ListView_InsertColumn(hListView, 4, &lvColumn);
+	ShowWindow(mainHwnd, SW_SHOW);
+
+	lvColumn.cx = 90;
+	lvColumn.pszText = to_lpwstr("LINE COUNT");
+	ListView_InsertColumn(hListView, 5, &lvColumn);
 	ShowWindow(mainHwnd, SW_SHOW);
 
 	MSG msg;
@@ -174,10 +135,22 @@ LRESULT CALLBACK mainWindowProc(HWND mhwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	{
 		HDC hdcStatic = (HDC)wParam;
 		SetBkMode(hdcStatic, TRANSPARENT);
-		HBRUSH hBrush = CreateSolidBrush(RGB(255, 255, 255));
+		HBRUSH hBrush = CreateSolidBrush(RGB(67, 65, 112));
 		return (LRESULT)hBrush;
 	}
 	break;
+	case WM_PAINT:
+	{
+		PAINTSTRUCT ps;
+		HDC hdc = BeginPaint(mhwnd, &ps);
+		RECT rect;
+		GetClientRect(mhwnd, &rect);
+		HBRUSH brush = CreateSolidBrush(RGB(67, 65, 112));
+		FillRect(hdc, &rect, brush);
+		DeleteObject(brush);
+		EndPaint(mhwnd, &ps);
+		break;
+	}
 	case WM_COMMAND:
 		switch (LOWORD(wParam))
 		{
@@ -190,16 +163,15 @@ LRESULT CALLBACK mainWindowProc(HWND mhwnd, UINT msg, WPARAM wParam, LPARAM lPar
 			break;
 		case BUTTON_STOP:
 		{
-			HDC hdc = GetDC(statusText);
-			SetTextColor(hdc, RGB(255, 0, 0));
 			SetWindowText(statusText, offStatus);
-			ReleaseDC(statusText, hdc);
-			UpdateWindow(mhwnd);
 			binder_worked = false;
-		}
 			break;
+		}
 		case SHOW:
 			ShowWindow(mhwnd, SW_MINIMIZE);
+			break;
+		case CHANGE_THEME:
+
 			break;
 		}
 		break;
@@ -209,4 +181,68 @@ LRESULT CALLBACK mainWindowProc(HWND mhwnd, UINT msg, WPARAM wParam, LPARAM lPar
 	}
 
 	return 0;
+}
+
+LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
+{
+	if (nCode == HC_ACTION && wParam == WM_KEYDOWN)
+	{
+		KBDLLHOOKSTRUCT* p = (KBDLLHOOKSTRUCT*)lParam;
+		pressed_handler(p->vkCode);
+	}
+	return CallNextHookEx(hook, nCode, wParam, lParam);
+}
+
+void pressed_handler(int keyCode)
+{
+	if (binder_worked == false) return;
+
+	if (isContains(binders, keyCode))
+	{
+		auto lp = get_game_text(binders, keyCode);
+		HWND hwnd = GetForegroundWindow(); // Get the handle of the foreground window
+		WCHAR buffer[256]; // Create a buffer to hold the window text
+		GetWindowText(hwnd, buffer, 256); // Get the window text
+
+		cout << "=====================" << endl;
+		wcout << lp << endl;
+		wcout << buffer << endl;
+		cout << "=====================" << endl;
+
+		if (wcscmp(lp, buffer) != 0 && wcscmp(lp, L"No-Game") != 0)
+		{
+			cout << "true" << endl;
+			return;
+		}
+
+		int pause = getPause(binders, keyCode);
+		cout << keyCode << endl;
+		for (string s : getBind(binders, keyCode))
+		{
+			if (wcscmp(lp, L"GTA:SA:SAMP"))
+			{
+				keybd_event(0x54, 0, 0, 0);
+				keybd_event(0x54, 0, KEYEVENTF_KEYUP, 0);
+			}
+			else
+			{
+				keybd_event(VK_BACK, 0, 0, 0);
+				keybd_event(VK_BACK, 0, KEYEVENTF_KEYUP, 0);
+			}
+
+			for (char c : s)
+			{
+				int vk = VkKeyScan(c);
+				if (vk != -1)
+				{
+					int scan = MapVirtualKey(vk, MAPVK_VK_TO_VSC);
+					keybd_event(vk, scan, 0, 0);
+					keybd_event(vk, scan, KEYEVENTF_KEYUP, 0);
+				}
+			}
+			keybd_event(VK_RETURN, 0, 0, 0);
+			keybd_event(VK_RETURN, 0, KEYEVENTF_KEYUP, 0);
+			Sleep(pause);
+		}
+	}
 }
